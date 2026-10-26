@@ -1,0 +1,28 @@
+# Render Blueprint. Commit this and point Render at the repo ("New +" -> "Blueprint").
+# Docs: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: brokerbin-mcp
+    runtime: node
+    plan: starter
+    region: oregon
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: MCP_TRANSPORT
+        value: http
+      - key: NODE_ENV
+        value: production
+      # Set the actual secret in the Render dashboard, not here.
+      - key: BROKERBIN_API_KEY
+        sync: false
+      # Strongly recommended: protects your public URL. Render can generate one.
+      - key: MCP_AUTH_TOKEN
+        generateValue: true
+      # Optional overrides:
+      # - key: BROKERBIN_DEFAULT_LOGIN
+      #   sync: false
+      # - key: LOG_LEVEL
+      #   value: info

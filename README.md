@@ -70,6 +70,18 @@ docker run -p 3000:3000 -e BROKERBIN_API_KEY=... -e MCP_AUTH_TOKEN=... brokerbin
 
 ## Connect a client
 
+### ChatGPT custom MCP connector (no-auth clients)
+
+ChatGPT's "Add custom MCP server" dialog only offers **OAuth** or **No authentication** —
+it can't send a bearer header. Put the secret in the URL path instead:
+
+- **Authentication:** No authentication
+- **Server URL:** `https://<service>.onrender.com/mcp/<MCP_AUTH_TOKEN>`
+
+The server accepts the token via the URL path (`/mcp/<token>`), a `?token=` query
+param, or the `Authorization: Bearer` header — whichever the client supports. Use a
+long random token (not a short PIN); URL secrets are only as strong as their entropy.
+
 ### Claude Code / Claude Desktop — remote (hosted on Render)
 
 ```bash

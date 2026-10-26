@@ -36,12 +36,33 @@ function tokenMatches(provided: string, expected: string): boolean {
   return diff === 0;
 }
 
-function isAuthorized(req: Request, config: Config): boolean {
-  if (!config.mcpAuthToken) return true; // auth disabled
+/**
+ * Pull the caller-supplied token from (in priority order):
+ *   1. Authorization: Bearer <token>   — for the OpenAI Responses API / CLI clients
+ *   2. ?token= / ?key= query parameter
+ *   3. the URL path segment, e.g. POST /mcp/<token>  — lets clients that only
+ *      support "no authentication" (like the ChatGPT connector UI) still carry
+ *      the secret in the URL.
+ */
+function extractToken(req: Request): string | null {
   const header = req.header("authorization") ?? "";
   const match = /^Bearer\s+(.+)$/i.exec(header);
-  if (!match) return false;
-  return tokenMatches(match[1].trim(), config.mcpAuthToken);
+  if (match) return match[1].trim();
+
+  const q = req.query.token ?? req.query.key;
+  if (typeof q === "string" && q.length > 0) return q;
+
+  const pathSecret = (req.params as { secret?: string }).secret;
+  if (typeof pathSecret === "string" && pathSecret.length > 0) return pathSecret;
+
+  return null;
+}
+
+function isAuthorized(req: Request, config: Config): boolean {
+  if (!config.mcpAuthToken) return true; // auth disabled
+  const provided = extractToken(req);
+  if (!provided) return false;
+  return tokenMatches(provided, config.mcpAuthToken);
 }
 
 export function createHttpApp(config: Config) {
@@ -65,7 +86,9 @@ export function createHttpApp(config: Config) {
   });
 
   // Main MCP endpoint (stateless streamable HTTP).
-  app.post("/mcp", async (req, res) => {
+  // Mounted at both /mcp (token via header or ?token=) and /mcp/:secret
+  // (token embedded in the URL path, for "no auth" clients like ChatGPT).
+  const mcpHandler = async (req: Request, res: Response) => {
     const reqId = (req as Request & { id: string }).id;
 
     if (!isAuthorized(req, config)) {
@@ -97,7 +120,9 @@ export function createHttpApp(config: Config) {
         });
       }
     }
-  });
+  };
+  app.post("/mcp", mcpHandler);
+  app.post("/mcp/:secret", mcpHandler);
 
   // Stateless transport doesn't support server-initiated streams over GET/DELETE.
   const methodNotAllowed = (_req: Request, res: Response) => {
@@ -107,8 +132,8 @@ export function createHttpApp(config: Config) {
       id: null,
     });
   };
-  app.get("/mcp", methodNotAllowed);
-  app.delete("/mcp", methodNotAllowed);
+  app.get(["/mcp", "/mcp/:secret"], methodNotAllowed);
+  app.delete(["/mcp", "/mcp/:secret"], methodNotAllowed);
 
   return app;
 }

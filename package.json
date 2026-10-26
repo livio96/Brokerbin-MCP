@@ -17,8 +17,7 @@
     "start": "node dist/index.js",
     "dev": "tsc --watch",
     "dev:http": "MCP_TRANSPORT=http node --watch dist/index.js",
-    "lint": "tsc --noEmit",
-    "prepare": "npm run build"
+    "lint": "tsc --noEmit"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0",

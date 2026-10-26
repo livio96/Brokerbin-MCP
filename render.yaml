@@ -8,7 +8,9 @@ services:
     # (~30-60s) on the next request. Change to "starter" ($7/mo) for always-on.
     plan: free
     region: oregon
-    buildCommand: npm ci && npm run build
+    # --include=dev forces TypeScript/@types to install even though Render sets
+    # NODE_ENV=production (which would otherwise skip devDependencies and break tsc).
+    buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /health
     autoDeploy: true

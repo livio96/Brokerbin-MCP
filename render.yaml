@@ -4,7 +4,9 @@ services:
   - type: web
     name: brokerbin-mcp
     runtime: node
-    plan: starter
+    # Free tier: no cost, but the service sleeps after ~15 min idle and cold-starts
+    # (~30-60s) on the next request. Change to "starter" ($7/mo) for always-on.
+    plan: free
     region: oregon
     buildCommand: npm ci && npm run build
     startCommand: npm start
